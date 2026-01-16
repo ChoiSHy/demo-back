@@ -6,9 +6,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,11 +24,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
     private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        String requestURI = request.getRequestURI();
+        String method = request.getMethod();
+
+        // ✅ OPTIONS 요청은 필터 건너뛰기 (CORS preflight)
+        if (HttpMethod.OPTIONS.matches(method)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // ✅ permitAll 경로는 필터 건너뛰기
+        if (isPermitAllPath(requestURI)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String token = resolveToken(request);
 
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
@@ -46,5 +64,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return bearerToken.substring(BEARER_PREFIX.length());
         }
         return null;
+    }
+
+    private boolean isPermitAllPath(String requestURI) {
+        return pathMatcher.match("/api/v1/demo/auth/sign/**", requestURI) ||
+                pathMatcher.match("/api/v1/demo/public/**", requestURI);
     }
 }
