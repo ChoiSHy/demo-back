@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -15,27 +16,20 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User extends BaseEntity {
+public class UserInfo extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "user_id", nullable = false, updatable = false, columnDefinition = "BINARY(16)")
     private UUID userId;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String userEmail;
-
-    @Column(nullable = false)
-    private String userPassword;
-
     @Column(nullable = false, length = 50)
     private String userName;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private UserRole userRole;
+    private LocalDate birthDate;
 
-    public void updatePassword(String password) {
-        this.userPassword = password;
-    }
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "login_id", nullable = false, unique = true)
+    private LoginInfo loginInfo;
+
 }

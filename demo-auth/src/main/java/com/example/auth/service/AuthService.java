@@ -1,11 +1,13 @@
 package com.example.auth.service;
 
-import com.example.auth.domain.User;
+import com.example.auth.domain.LoginInfo;
+import com.example.auth.domain.UserInfo;
 import com.example.auth.domain.UserRole;
 import com.example.auth.dto.LoginRequest;
 import com.example.auth.dto.SignupRequest;
 import com.example.auth.dto.TokenResponse;
-import com.example.auth.repository.UserRepository;
+import com.example.auth.repository.LoginInfoRepository;
+import com.example.auth.repository.UserInfoRepository;
 import com.example.common.exception.BusinessException;
 import com.example.common.exception.ErrorCode;
 import com.example.security.jwt.JwtTokenProvider;
@@ -23,42 +25,61 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository userRepository;
+    private final UserInfoRepository userInfoRepository;
+    private final LoginInfoRepository loginInfoRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final LoginSessionService loginSessionService;
 
     @Transactional
     public void signup(SignupRequest request) {
-        if (userRepository.existsByUserEmail(request.getEmail())) {
+        if (loginInfoRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
         }
 
-        User user = User.builder()
-                .userEmail(request.getEmail())
-                .userPassword(passwordEncoder.encode(request.getPassword()))
-                .userName(request.getName())
+        LoginInfo loginInfo = LoginInfo.builder()
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .userRole(UserRole.USER)
                 .build();
 
-        userRepository.save(user);
+        UserInfo userInfo = UserInfo.builder()
+                .userName(request.getName())
+                .birthDate(request.getBirthDate())
+                .loginInfo(loginInfo)
+                .build();
+
+        userInfoRepository.save(userInfo);
         log.info("User signed up successfully: {}", request.getEmail());
     }
 
     @Transactional(readOnly = true)
     public TokenResponse login(LoginRequest request) {
-        User user = userRepository.findByUserEmail(request.getEmail())
+        LoginInfo loginInfo = loginInfoRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getUserPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), loginInfo.getPassword())) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
+        // UserInfo를 로드하여 userId 가져오기
+        UserInfo userInfo = userInfoRepository.findByLoginInfo_Email(request.getEmail())
+                .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));
+
         String accessToken = jwtTokenProvider.createAccessToken(
-                user.getUserEmail(),
-                Collections.singletonList(new SimpleGrantedAuthority(user.getUserRole().getKey()))
+                loginInfo.getEmail(),
+                userInfo.getUserId().toString(),
+                Collections.singletonList(new SimpleGrantedAuthority(loginInfo.getUserRole().getKey()))
         );
 
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserEmail());
+        String refreshToken = jwtTokenProvider.createRefreshToken(loginInfo.getEmail());
+
+        // Redis에 로그인 세션 저장
+        loginSessionService.saveLoginSession(
+                loginInfo.getEmail(),
+                accessToken,
+                refreshToken
+        );
 
         log.info("User logged in successfully: {}", request.getEmail());
         return TokenResponse.of(accessToken, refreshToken);
@@ -71,15 +92,20 @@ public class AuthService {
         }
 
         String email = jwtTokenProvider.getEmailFromToken(refreshToken);
-        User user = userRepository.findByUserEmail(email)
+        LoginInfo loginInfo = loginInfoRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));
+
+        // UserInfo를 로드하여 userId 가져오기
+        UserInfo userInfo = userInfoRepository.findByLoginInfo_Email(email)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));
 
         String newAccessToken = jwtTokenProvider.createAccessToken(
-                user.getUserEmail(),
-                Collections.singletonList(new SimpleGrantedAuthority(user.getUserRole().getKey()))
+                loginInfo.getEmail(),
+                userInfo.getUserId().toString(),
+                Collections.singletonList(new SimpleGrantedAuthority(loginInfo.getUserRole().getKey()))
         );
 
-        String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getUserEmail());
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(loginInfo.getEmail());
 
         log.info("Token refreshed successfully: {}", email);
         return TokenResponse.of(newAccessToken, newRefreshToken);

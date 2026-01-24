@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis-demo
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redis123
+    volumes:
+      - redis-data:/data
+    networks:
+      - demo-network
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-demo
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: db_demo
+      MYSQL_USER: user
+      MYSQL_PASSWORD: 1234
+      TZ: Asia/Seoul
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - demo-network
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+
+volumes:
+  redis-data:
+    driver: local
+  mysql-data:
+    driver: local
+
+networks:
+  demo-network:
+    driver: bridge

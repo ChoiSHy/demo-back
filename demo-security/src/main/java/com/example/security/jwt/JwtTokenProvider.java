@@ -46,15 +46,15 @@ public class JwtTokenProvider {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String createAccessToken(String email, Collection<? extends GrantedAuthority> authorities) {
-        return createToken(email, authorities, accessTokenValidity);
+    public String createAccessToken(String email, String userId, Collection<? extends GrantedAuthority> authorities) {
+        return createToken(email, userId, authorities, accessTokenValidity);
     }
 
     public String createRefreshToken(String email) {
-        return createToken(email, null, refreshTokenValidity);
+        return createToken(email, null, null, refreshTokenValidity);
     }
 
-    private String createToken(String email, Collection<? extends GrantedAuthority> authorities, long validity) {
+    private String createToken(String email, String userId, Collection<? extends GrantedAuthority> authorities, long validity) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + validity);
 
@@ -63,6 +63,10 @@ public class JwtTokenProvider {
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key);
+
+        if (userId != null) {
+            builder.claim("userId", userId);
+        }
 
         if (authorities != null && !authorities.isEmpty()) {
             String authoritiesStr = authorities.stream()
@@ -122,5 +126,10 @@ public class JwtTokenProvider {
     public String getEmailFromToken(String token) {
         Claims claims = parseClaims(token);
         return claims.getSubject();
+    }
+
+    public String getUserIdFromToken(String token) {
+        Claims claims = parseClaims(token);
+        return (String) claims.get("userId");
     }
 }
