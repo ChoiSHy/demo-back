@@ -51,8 +51,14 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // 페이지 접근 허용 (GET, POST 모두)
+                        .requestMatchers(HttpMethod.GET, "/login", "/signup").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/login").permitAll()
+                        // 정적 리소스 허용
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
                         .requestMatchers("/api/v1/demo/auth/sign/**").permitAll()
                         .requestMatchers("/api/v1/demo/public/**").permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

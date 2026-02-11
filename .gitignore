@@ -36,3 +36,8 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# Error Detector
+logs/
+error-detector/node_modules/
+error-detector/.env

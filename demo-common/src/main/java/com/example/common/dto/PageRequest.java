@@ -1,4 +1,6 @@
 package com.example.common.dto;
 
-public record PageRequest() {
+public record PageRequest(
+
+) {
 }

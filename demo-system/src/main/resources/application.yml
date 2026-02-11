@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: demo-system
+
+  profiles:
+    active: dev
+
+  datasource:
+    hikari:
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    open-in-view: false
+
+server:
+  port: 82
+  servlet:
+    context-path: /
+
+jwt:
+  secret: your-secret-key-minimum-256-bits-for-hs512-algorithm-please-change-this-in-production
+  access-token-validity: 3600000
+  refresh-token-validity: 604800000
+  cookie:
+    secure: false
+
+base:
+  url: api/v1/demo/system

@@ -10,10 +10,10 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>demo-auth</artifactId>
+    <artifactId>demo-system</artifactId>
     <packaging>jar</packaging>
-    <name>demo-auth</name>
-    <description>Authentication and authorization service</description>
+    <name>demo-system</name>
+    <description>System common API service</description>
 
     <dependencies>
         <!-- Demo Common -->
@@ -38,24 +38,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <!-- Thymeleaf -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId>
-        </dependency>
-
-        <!-- Spring Data Redis -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-
-        <!-- Lettuce (Redis Client) -->
-        <dependency>
-            <groupId>io.lettuce</groupId>
-            <artifactId>lettuce-core</artifactId>
         </dependency>
 
         <!-- Spring Boot DevTools -->
@@ -87,7 +69,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>com.example.auth.AuthApplication</mainClass>
+                    <mainClass>com.example.system.SystemApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>

@@ -7,60 +7,16 @@ spring:
 
   datasource:
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
-      connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
 
   jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
     open-in-view: false
-
-  # MyBatis 설정 (필요시 활성화)
-  # mybatis:
-  #   mapper-locations: classpath:mapper/**/*.xml
-  #   type-aliases-package: com.example.auth.domain
-  #   configuration:
-  #     map-underscore-to-camel-case: true
-
-  # Redis 설정
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password: redis123 # 운영 환경에서는 비밀번호 설정 (예: mypassword123)
-      lettuce:
-        pool:
-          max-active: 10
-          max-idle: 10
-          min-idle: 2
-      timeout: 3000ms
 
 server:
   port: 81
   servlet:
     context-path: /
-
-jwt:
-  secret: your-secret-key-minimum-256-bits-for-hs512-algorithm-please-change-this-in-production
-  access-token-validity: 3600000  # 1시간 (밀리초)
-  refresh-token-validity: 604800000  # 7일 (밀리초)
-  cookie:
-    secure: false  # 개발 환경: false, 운영 환경: true (HTTPS 필요)
-
-logging:
-  level:
-    com.example: DEBUG
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
 base:
   url: api/v1/demo/auth

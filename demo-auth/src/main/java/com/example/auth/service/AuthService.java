@@ -6,6 +6,7 @@ import com.example.auth.domain.UserRole;
 import com.example.auth.dto.LoginRequest;
 import com.example.auth.dto.SignupRequest;
 import com.example.auth.dto.TokenResponse;
+import com.example.auth.dto.UserInfoResponse;
 import com.example.auth.repository.LoginInfoRepository;
 import com.example.auth.repository.UserInfoRepository;
 import com.example.common.exception.BusinessException;
@@ -109,5 +110,12 @@ public class AuthService {
 
         log.info("Token refreshed successfully: {}", email);
         return TokenResponse.of(newAccessToken, newRefreshToken);
+    }
+
+    @Transactional(readOnly = true)
+    public UserInfoResponse getCurrentUser(String email) {
+        UserInfo userInfo = userInfoRepository.findByLoginInfo_Email(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));
+        return UserInfoResponse.from(userInfo);
     }
 }

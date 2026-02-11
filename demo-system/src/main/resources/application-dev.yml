@@ -1,0 +1,25 @@
+spring:
+  config:
+    import: classpath:db-config.yml
+
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/java
+    livereload:
+      enabled: true
+
+logging:
+  level:
+    com.example: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  file:
+    name: logs/demo-system.log
+
+service:
+  demo-front:
+    prefix: http
+    uri: localhost
+    port: 5173

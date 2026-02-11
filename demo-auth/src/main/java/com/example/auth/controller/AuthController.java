@@ -1,8 +1,8 @@
 package com.example.auth.controller;
 
-import com.example.auth.dto.LoginRequest;
 import com.example.auth.dto.SignupRequest;
 import com.example.auth.dto.TokenResponse;
+import com.example.auth.dto.UserInfoResponse;
 import com.example.auth.service.AuthService;
 import com.example.common.dto.ApiResponse;
 import jakarta.servlet.http.Cookie;
@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -31,50 +33,24 @@ public class AuthController {
     @Value("${jwt.cookie.secure:false}")
     private boolean cookieSecure;
 
+    /**
+     * 회원가입
+     */
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<Void>> signup(@Valid @RequestBody SignupRequest request) {
         authService.signup(request);
         return ResponseEntity.ok(ApiResponse.success("회원가입이 완료되었습니다", null));
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<ApiResponse<TokenResponse>> login(
-            @Valid @RequestBody LoginRequest request,
-            HttpServletResponse response) {
-        TokenResponse tokenResponse = authService.login(request);
-
-        // Access Token 쿠키 설정
-        Cookie accessTokenCookie = createCookie(
-                "accessToken",
-                tokenResponse.getAccessToken(),
-                (int) (accessTokenValidity / 1000), // 밀리초를 초로 변환
-                true,         // HttpOnly
-                cookieSecure  // Secure (설정 파일에서 관리)
-        );
-
-        // Refresh Token 쿠키 설정
-        Cookie refreshTokenCookie = createCookie(
-                "refreshToken",
-                tokenResponse.getRefreshToken(),
-                (int) (refreshTokenValidity / 1000), // 밀리초를 초로 변환
-                true,         // HttpOnly
-                cookieSecure  // Secure (설정 파일에서 관리)
-        );
-
-        response.addCookie(accessTokenCookie);
-        response.addCookie(refreshTokenCookie);
-
-        log.info("Tokens set in cookies for user: {}", request.getEmail());
-        return ResponseEntity.ok(ApiResponse.success("로그인이 완료되었습니다", tokenResponse));
-    }
-
+    /**
+     * 토큰 갱신
+     */
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<TokenResponse>> refresh(
             @CookieValue(name = "refreshToken", required = false) String refreshTokenFromCookie,
             @RequestHeader(value = "Refresh-Token", required = false) String refreshTokenFromHeader,
             HttpServletResponse response) {
 
-        // 쿠키 또는 헤더에서 refresh token 가져오기
         String refreshToken = refreshTokenFromCookie != null ? refreshTokenFromCookie : refreshTokenFromHeader;
 
         if (refreshToken == null) {
@@ -84,55 +60,48 @@ public class AuthController {
 
         TokenResponse tokenResponse = authService.refreshToken(refreshToken);
 
-        // 새로운 토큰을 쿠키에 설정
-        Cookie accessTokenCookie = createCookie(
-                "accessToken",
-                tokenResponse.getAccessToken(),
-                (int) (accessTokenValidity / 1000),
-                true,
-                cookieSecure
-        );
-
-        Cookie refreshTokenCookie = createCookie(
-                "refreshToken",
-                tokenResponse.getRefreshToken(),
-                (int) (refreshTokenValidity / 1000),
-                true,
-                cookieSecure
-        );
-
-        response.addCookie(accessTokenCookie);
-        response.addCookie(refreshTokenCookie);
+        response.addCookie(createCookie("accessToken", tokenResponse.getAccessToken(), (int) (accessTokenValidity / 1000)));
+        response.addCookie(createCookie("refreshToken", tokenResponse.getRefreshToken(), (int) (refreshTokenValidity / 1000)));
 
         log.info("Tokens refreshed and set in cookies");
         return ResponseEntity.ok(ApiResponse.success("토큰이 갱신되었습니다", tokenResponse));
     }
 
+    /**
+     * 로그아웃
+     */
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(HttpServletResponse response) {
-        // 쿠키 삭제 (maxAge를 0으로 설정)
-        Cookie accessTokenCookie = createCookie("accessToken", "", 0, true, cookieSecure);
-        Cookie refreshTokenCookie = createCookie("refreshToken", "", 0, true, cookieSecure);
-
-        response.addCookie(accessTokenCookie);
-        response.addCookie(refreshTokenCookie);
+        response.addCookie(createCookie("accessToken", "", 0));
+        response.addCookie(createCookie("refreshToken", "", 0));
 
         log.info("User logged out, cookies cleared");
         return ResponseEntity.ok(ApiResponse.success("로그아웃이 완료되었습니다", null));
     }
 
     /**
+     * 현재 사용자 정보 조회
+     */
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserInfoResponse>> getCurrentUser(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.ok(ApiResponse.success("로그인 정보 없음", null));
+        }
+        UserInfoResponse userInfo = authService.getCurrentUser(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("사용자 정보 조회 성공", userInfo));
+    }
+
+    /**
      * 쿠키 생성 헬퍼 메서드
      */
-    private Cookie createCookie(String name, String value, int maxAge, boolean httpOnly, boolean secure) {
+    private Cookie createCookie(String name, String value, int maxAge) {
         Cookie cookie = new Cookie(name, value);
-        cookie.setHttpOnly(httpOnly);  // XSS 공격 방지
-        cookie.setSecure(secure);      // HTTPS에서만 전송 (개발 환경에서는 false로 설정 가능)
-        cookie.setPath("/");           // 모든 경로에서 접근 가능
-        cookie.setMaxAge(maxAge);      // 쿠키 만료 시간 (초 단위)
-        // cookie.setDomain("yourdomain.com"); // 필요시 도메인 설정
-        cookie.setAttribute("SameSite", "Lax"); // 개발 환경에서 cross-origin 요청 허용
-
+        cookie.setHttpOnly(true);
+        cookie.setSecure(cookieSecure);
+        cookie.setPath("/");
+        cookie.setMaxAge(maxAge);
+        cookie.setAttribute("SameSite", "Lax");
         return cookie;
     }
 }
