@@ -35,7 +35,7 @@ public class PageController {
     @Value("${service.demo-front.prefix}")
     private String redirectPrefix;
     @Value("${service.demo-front.uri}")
-    private String rediectUri;
+    private String redirectUri;
     @Value("${service.demo-front.port}")
     private String redirectPort;
 
@@ -59,6 +59,7 @@ public class PageController {
             targetUrl = buildUrl(redirectUrl);
         }
         model.addAttribute("redirectUrl", targetUrl);
+        model.addAttribute("signUpUrl", buildUrl("signup"));
         return "login";
     }
 
@@ -132,6 +133,6 @@ public class PageController {
         if (!targetPath.startsWith("/")) {
             targetPath = "/" + targetPath;
         }
-        return String.format("%s://%s:%s%s", redirectPrefix, rediectUri, redirectPort, targetPath);
+        return String.format("%s://%s:%s%s", redirectPrefix, redirectUri, redirectPort, targetPath);
     }
 }

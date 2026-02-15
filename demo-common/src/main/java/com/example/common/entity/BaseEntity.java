@@ -10,6 +10,8 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.example.common.enums.YesNo;
+
 import java.time.LocalDateTime;
 
 @Getter
@@ -33,19 +35,19 @@ public abstract class BaseEntity {
     @Column(name = "updated_by", length = 100)
     private String updatedBy;
 
-    @Column(name = "deleted", nullable = false)
-    private Boolean deleted = false;
+    @Column(name = "delYn", nullable = false)
+    private YesNo delYn = YesNo.NO;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
     public void delete() {
-        this.deleted = true;
+        this.delYn = YesNo.YES;
         this.deletedAt = LocalDateTime.now();
     }
 
     public void restore() {
-        this.deleted = false;
+        this.delYn = YesNo.NO;
         this.deletedAt = null;
     }
 }
