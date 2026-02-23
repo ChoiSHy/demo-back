@@ -25,5 +25,6 @@ jwt:
   cookie:
     secure: false
 
-base:
-  url: api/v1/demo/system
+path:
+  base-url: /api/v1/demo/system
+  public-url: /api/v1/demo/public

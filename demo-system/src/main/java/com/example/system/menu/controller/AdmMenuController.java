@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("${base.url}/adm-menus")
+@RequestMapping("${path.base-url}/adm-menus")
 public class AdmMenuController {
     private final MenuService menuService;
 
